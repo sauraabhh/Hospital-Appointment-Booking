@@ -1,47 +1,81 @@
 What the project is
 
-A hospital appointment booking website.
+A hospital appointment booking web app. Patients book time slots with doctors online, and the admin manages doctors and all appointments.
 
-Patients can create an account, see doctors, pick a date, choose a free time slot, book, and cancel.
-Admin can add or delete doctors and see all appointments.
+Two roles:
 
-The special feature is that two people can't book the same doctor at the same time. The system blocks it automatically.
+Patient: register, log in, browse doctors, pick a date, book a free slot, view and cancel appointments
+Admin: add or delete doctors, see every appointment, cancel any of them
 
-The tech stack (MERN)
+How it works, step by step
 
-MERN is four tools that all use JavaScript:
+1. Registering and logging in
+The patient fills the form in React.
+React sends the data to the Express server.
+The server hashes the password with bcrypt and saves the user in MongoDB. The role is always patient.
+On login, the server checks the password and sends back a JWT token (a signed proof of who you are).
+React stores the token in the browser and attaches it to every later request.
 
-MongoDB is the database. It stores users, doctors, and appointments. We used MongoDB Atlas, which is free and online, so you don't have to install anything.
+2. Viewing doctors
+The Doctors page asks the server for the doctor list.
+Doctors are stored in MongoDB with their department, fee, working days, and working hours.
+The department dropdown is built from the real doctor data.
 
-Express runs on the server and creates the API routes, like "get doctors" or "book appointment". It's simple and good for beginners.
+3. Finding free time slots
+The patient picks a doctor and a date.
+The server calculates all slots from the doctor's start time, end time, and slot length (for example 09:00, 09:30, 10:00...).
+It returns nothing if the date is in the past or the doctor doesn't work that day.
+It then removes slots that already have a booked appointment.
 
-React builds what the user sees: pages, buttons, forms. It updates the screen quickly without reloading the whole page.
+4. Booking
+The patient clicks a slot.
+The server checks the slot is valid and saves the appointment.
+MongoDB has a unique index on doctor + date + time for booked appointments. If two people click the same slot at the same moment, the database accepts one and rejects the other with a "Slot already booked" message.
 
-Node.js lets JavaScript run on the server, so we can use one language for both frontend and backend.
+5. My Appointments and cancelling
+The patient sees only their own appointments.
+Cancelling sets the status to cancelled, which frees the slot for others.
+The server checks that a patient can only cancel their own appointment.
 
-Extra libraries and why we used them
+6. Admin panel
+Only users with the admin role can open it.
+Admin can add doctors, delete doctors, view all appointments with patient names, and cancel any.
+This is enforced on the server, not only hidden in the UI.
 
-Vite creates and runs the React app quickly.
+The request flow : 
+Browser (React) → Express API → Mongoose → MongoDB Atlas
 
-Mongoose helps us define the shape of our data (User, Doctor, Appointment) and talk to MongoDB easily.
+The user clicks something in React.
+Axios sends a request with the JWT token.
+Express checks the token and the role.
+Mongoose reads or writes the data in MongoDB.
+The result returns to React, and the screen updates.
+Tech stack and why each one is used
 
-bcryptjs scrambles passwords before saving them, so nobody can read them even if the database leaks.
+MongoDB (Atlas) is the database. It stores data as JSON-like documents, which fits JavaScript naturally. Atlas is free and hosted online, so nothing needs installing.
 
-jsonwebtoken (JWT) gives the user a login token. Every request carries it, so the server knows who you are and whether you're a patient or admin.
+Express is the backend framework. It defines the API routes like /api/doctors and /api/appointments with very little code.
 
-dotenv keeps secrets like the database password in a .env file instead of in your code.
+React is the frontend library. It builds the interface from reusable pieces and updates the page without reloading, which suits flows like pick doctor, pick date, pick slot.
 
-cors lets the React app (running on one port) talk to the server (running on another port). Browsers block this by default.
+Node.js runs JavaScript on the server, so the whole project uses one language.
 
-axios sends requests from React to the server and automatically attaches the login token.
+Supporting libraries:
 
-react-router-dom gives you separate pages like Doctors, My Appointments, and Admin.
+Vite creates and runs the React app fast, with instant reload on save.
 
-nodemon restarts the server automatically when you save a file.
+Mongoose defines the data shapes (User, Doctor, Appointment) and connects Node to MongoDB. It also lets us create the unique index that stops double booking.
 
-How it all works together
-You click something in the React page.
-React sends a request to the Express server.
-Express checks your login token and your role.
-Express reads or saves data in MongoDB.
-The answer goes back to React, and the screen updates.
+bcryptjs scrambles passwords before saving, so they can't be read even if the database leaks.
+
+jsonwebtoken (JWT) creates the login token. The server doesn't need to remember sessions, because each request carries proof of identity and role.
+
+dotenv keeps secrets (database password, JWT secret) in a .env file, out of the code and out of GitHub.
+
+cors lets the frontend and backend, running on different addresses, talk to each other.
+
+axios sends requests from React and automatically adds the token to each one.
+
+react-router-dom gives separate pages (Doctors, My Appointments, Admin) without full page reloads.
+
+nodemon restarts the server automatically when you save during developm
