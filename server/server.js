@@ -6,7 +6,11 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { User, Doctor, Appointment } = require('./models');const { protect, adminOnly } = require('./auth');
 const app = express();
-app.use(cors());
+
+app.use(cors({
+  origin: process.env.CLIENT_URL ? process.env.CLIENT_URL.split(',') : true
+}));
+
 app.use(express.json());
 
 app.get('/', (req, res) => res.send('Hospital API is running'));
